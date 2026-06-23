@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a1628">
+<title>Algorithm · MyNeST</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root {
+  --navy:#0a1628;--navy-mid:#122040;--navy-card:#1a2d50;
+  --blue:#3b9eff;--blue-bright:#5db0ff;--teal:#00d4b4;
+  --red:#ff4d6a;--amber:#ffb340;--green:#34d399;--purple:#a78bfa;
+  --text:#e8f0fe;--text-dim:#8da4c4;--border:#243860;
+  --radius:14px;--safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;background:var(--navy);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  background:var(--navy-mid);border-bottom:1px solid var(--border);
+  padding:48px 16px 14px;
+  position:sticky;top:0;z-index:100;
+}
+.back-btn{
+  width:36px;height:36px;border-radius:10px;background:var(--navy-card);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  text-decoration:none;color:var(--blue);font-size:18px;flex-shrink:0;
+}
+.topbar-title{font-size:17px;font-weight:700;color:#fff;}
+.topbar-sub{font-size:11px;color:var(--text-dim);}
+
+.content{padding:16px;}
+
+/* Tab bar */
+.tabs{display:flex;gap:6px;margin-bottom:16px;}
+.tab{
+  flex:1;padding:9px 6px;border-radius:10px;border:1px solid var(--border);
+  background:var(--navy-card);color:var(--text-dim);font-size:12px;font-weight:600;
+  text-align:center;cursor:pointer;transition:all .15s;
+}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+/* Decision tree nodes */
+.tree-panel{display:none;}
+.tree-panel.active{display:block;}
+
+.node{
+  border-radius:var(--radius);margin-bottom:10px;
+  border:1px solid var(--border);overflow:hidden;
+}
+.node-head{
+  padding:13px 16px;font-size:14px;font-weight:700;
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+  user-select:none;
+}
+.node-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0;}
+.node-chevron{margin-left:auto;color:var(--text-dim);font-size:12px;transition:transform .2s;}
+.node.expanded .node-chevron{transform:rotate(180deg);}
+.node-body{padding:0 16px 14px;display:none;}
+.node.expanded .node-body{display:block;}
+
+/* node colour variants */
+.n-start .node-head{background:rgba(59,158,255,.15);border-bottom:1px solid rgba(59,158,255,.2);}
+.n-action .node-head{background:rgba(0,212,180,.12);border-bottom:1px solid rgba(0,212,180,.2);}
+.n-decision .node-head{background:rgba(255,179,64,.12);border-bottom:1px solid rgba(255,179,64,.2);}
+.n-escalate .node-head{background:rgba(255,77,106,.12);border-bottom:1px solid rgba(255,77,106,.2);}
+.n-good .node-head{background:rgba(52,211,153,.12);border-bottom:1px solid rgba(52,211,153,.2);}
+
+.arrow{
+  text-align:center;font-size:18px;color:var(--text-dim);
+  padding:2px 0 4px;
+}
+
+/* Yes/No branch buttons */
+.branch-row{display:flex;gap:8px;margin:8px 0 4px;}
+.branch{
+  flex:1;padding:9px 8px;border-radius:10px;border:1px solid;
+  font-size:13px;font-weight:700;text-align:center;cursor:pointer;
+  transition:all .15s;
+}
+.branch-yes{border-color:var(--green);color:var(--green);background:rgba(52,211,153,.1);}
+.branch-no{border-color:var(--red);color:var(--red);background:rgba(255,77,106,.1);}
+.branch.sel-yes{background:var(--green);color:#0a1628;}
+.branch.sel-no{background:var(--red);color:#fff;}
+
+/* Steps list */
+.step-list{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.step-list li{
+  display:flex;gap:10px;align-items:flex-start;
+  font-size:13px;line-height:1.5;color:var(--text);
+}
+.step-num{
+  min-width:22px;height:22px;border-radius:50%;
+  background:var(--navy-mid);border:1px solid var(--border);
+  font-size:11px;font-weight:700;color:var(--blue);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+
+.pill{
+  display:inline-block;padding:2px 8px;border-radius:20px;
+  font-size:11px;font-weight:700;margin:2px 2px 0 0;
+}
+.pill-blue{background:rgba(59,158,255,.2);color:var(--blue-bright);}
+.pill-red{background:rgba(255,77,106,.2);color:var(--red);}
+.pill-green{background:rgba(52,211,153,.2);color:var(--green);}
+.pill-amber{background:rgba(255,179,64,.2);color:var(--amber);}
+
+.info-box{
+  background:var(--navy-mid);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-top:8px;
+}
+.info-box strong{color:var(--text);}
+
+.mask-card{
+  background:var(--navy-mid);border-radius:12px;padding:12px;margin-top:10px;
+}
+.mask-row{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);}
+.mask-row:last-child{border-bottom:none;}
+.mask-letter{
+  width:32px;height:32px;border-radius:8px;
+  background:rgba(59,158,255,.15);border:1px solid rgba(59,158,255,.3);
+  font-size:16px;font-weight:800;color:var(--blue);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.mask-detail{font-size:12.5px;line-height:1.5;}
+.mask-label{font-weight:700;color:var(--text);margin-bottom:2px;}
+
+.bottom-safe{height:calc(20px + var(--safe-bottom));}
+
+/* Flowchart visual */
+.flow-box{
+  border-radius:10px;border:1px solid;padding:10px 14px;
+  font-size:13px;font-weight:600;text-align:center;margin:4px 0;
+}
+.flow-diamond{
+  background:rgba(255,179,64,.1);border-color:rgba(255,179,64,.4);color:var(--amber);
+}
+.flow-action{
+  background:rgba(59,158,255,.1);border-color:rgba(59,158,255,.35);color:var(--blue-bright);
+}
+.flow-good{
+  background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35);color:var(--green);
+}
+.flow-bad{
+  background:rgba(255,77,106,.1);border-color:rgba(255,77,106,.35);color:var(--red);
+}
+.flow-split{display:flex;gap:8px;margin:4px 0;}
+.flow-split .flow-box{flex:1;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="back-btn" href="index.html">←</a>
+  <div>
+    <div class="topbar-title">Resuscitation Algorithm</div>
+    <div class="topbar-sub">MyNeST · ILCOR CoSTR · Malaysia</div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('term')">Term</div>
+    <div class="tab" onclick="showTab('preterm')">Preterm &lt;32w</div>
+    <div class="tab" onclick="showTab('mask')">MASK Steps</div>
+    <div class="tab" onclick="showTab('dope')">DOPE</div>
+  </div>
+
+  <!-- TERM TAB -->
+  <div class="tree-panel active" id="tab-term">
+
+    <div class="node n-start expanded">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">👶</span>
+        <div><div>Birth — Initial Assessment</div><div style="font-size:11px;font-weight:400;color:var(--text-dim);margin-top:2px;">Ask 3 questions simultaneously</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span>Term (≥37 weeks)?</span></li>
+          <li><span class="step-num">2</span><span>Good tone?</span></li>
+          <li><span class="step-num">3</span><span>Breathing or crying?</span></li>
+        </ul>
+        <div class="branch-row">
+          <div class="branch branch-yes" onclick="selectBranch(this,'yes','birth-yes','birth-no')">✓ All YES</div>
+          <div class="branch branch-no" onclick="selectBranch(this,'no','birth-yes','birth-no')">✗ Any NO</div>
+        </div>
+        <div id="birth-yes" style="display:none;">
+          <div class="info-box">
+            <strong>→ Routine Care + DCC</strong><br>
+            Place skin-to-skin on mother. Delayed cord clamping ≥60 seconds. Dry, hat on. Observe transition.
+          </div>
+        </div>
+        <div id="birth-no" style="display:none;">
+          <div class="info-box" style="border-color:rgba(255,77,106,.3);">
+            <strong style="color:var(--red);">→ Clamp cord. Transfer to warmer.</strong><br>
+            Proceed to Initial Steps below.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="node n-action">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">🌡️</span>
+        <div><div>Initial Steps <span class="pill pill-blue">30 sec</span></div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <ul class="step-list">
+          <li><span class="step-num">W</span><span>Warm — radiant warmer, pre-heated linen</span></li>
+          <li><span class="step-num">D</span><span>Dry vigorously, remove wet linen, stimulate</span></li>
+          <li><span class="step-num">P</span><span>Position — sniffing position (tragus → anterior axillary line)</span></li>
+          <li><span class="step-num">A</span><span>Airway — suction only if visibly obstructed (mouth first, then nose)</span></li>
+          <li><span class="step-num">H</span><span>Hat on immediately</span></li>
+        </ul>
+        <div class="info-box" style="margin-top:10px;">
+          <strong>MSAF (meconium-stained):</strong> Routine tracheal suction NOT recommended. If non-vigorous with suspected obstruction → intubate + suction. PPV must NOT be delayed.
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="node n-decision">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">❓</span>
+        <div><div>Evaluate: HR, Effort, SpO₂</div><div style="font-size:11px;font-weight:400;color:var(--text-dim);margin-top:2px;">Auscultate 6 sec × 10 · SpO₂ right hand</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <div class="flow-box flow-diamond">HR &lt; 100 OR apnoea / gasping?</div>
+        <div class="flow-split">
+          <div class="flow-box flow-good">HR ≥ 100<br>Breathing ✓<br>→ Continue CPAP / observe</div>
+          <div class="flow-box flow-bad">HR &lt; 100<br>OR apnoea<br>→ START PPV</div>
+        </div>
+        <div class="info-box">
+          <strong>Laboured breathing (grunting/recession) with HR ≥100:</strong> Apply SpO₂ probe. Consider CPAP PEEP 5–7 cmH₂O.
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓ if PPV needed</div>
+
+    <div class="node n-action">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">💨</span>
+        <div><div>PPV — Positive Pressure Ventilation</div><div style="font-size:11px;font-weight:400;color:var(--text-dim);margin-top:2px;">T-piece preferred · 40–60 breaths/min</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span>T-piece: PIP 20–25 cmH₂O, PEEP 5 cmH₂O, flow 10 L/min</span></li>
+          <li><span class="step-num">2</span><span>Term: FiO₂ 21%. Preterm &lt;32w: 21–30%</span></li>
+          <li><span class="step-num">3</span><span>Mask size 1 (term). Confirm no eye coverage.</span></li>
+          <li><span class="step-num">4</span><span>SpO₂ probe to RIGHT hand. Connect cardiac monitor.</span></li>
+          <li><span class="step-num">5</span><span>Assess: chest rise + rising HR within 15–30 sec?</span></li>
+          <li><span class="step-num">6</span><span>OG tube 5F/6F if PPV &gt; 2 minutes</span></li>
+        </ul>
+        <div class="flow-box flow-diamond" style="margin-top:10px;">Chest rising? HR improving?</div>
+        <div class="flow-split">
+          <div class="flow-box flow-good">YES → continue PPV. Check HR at 30 sec.</div>
+          <div class="flow-box flow-bad">NO → apply MASK steps →</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="node n-decision">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">❤️</span>
+        <div><div>HR after 30 sec effective PPV?</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <div class="flow-box flow-diamond">HR &lt; 60 despite effective PPV?</div>
+        <div class="flow-split">
+          <div class="flow-box flow-good">HR ≥ 60<br>Continue PPV<br>Target ≥100</div>
+          <div class="flow-box flow-bad">HR &lt; 60<br>→ CHEST COMPRESSIONS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓ if HR &lt; 60</div>
+
+    <div class="node n-escalate">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">🫀</span>
+        <div><div>Chest Compressions + ETT</div><div style="font-size:11px;font-weight:400;color:var(--text-dim);margin-top:2px;">3:1 ratio · 90 compressions + 30 breaths/min</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span>Intubate if not already. ETT-PPV preferred during CPR.</span></li>
+          <li><span class="step-num">2</span><span>FiO₂ → 100%</span></li>
+          <li><span class="step-num">3</span><span>Two-thumb encircling: lower ⅓ sternum, depress ⅓ AP diameter, full recoil</span></li>
+          <li><span class="step-num">4</span><span>Count aloud: "one-and-two-and-three-and-BAG"</span></li>
+          <li><span class="step-num">5</span><span>Reassess HR every 60 seconds</span></li>
+        </ul>
+        <div class="flow-box flow-diamond" style="margin-top:10px;">HR &lt; 60 after 60 sec CPR?</div>
+        <div class="flow-box flow-bad">→ ADRENALINE via UVC (preferred) or ETT</div>
+        <div class="info-box" style="margin-top:8px;">
+          <strong>Adrenaline IV:</strong> 0.01–0.03 mg/kg of 1:10,000 (0.1–0.3 mL/kg). Flush 3 mL NS.<br>
+          <strong>Adrenaline ETT:</strong> 0.05–0.1 mg/kg of 1:10,000 (0.5–1 mL/kg). Then 3 PPV.<br>
+          <strong>HR ≥60:</strong> Stop compressions. Continue PPV.<br>
+          <strong>HR ≥100 + breathing:</strong> Wean PPV.
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="node n-good">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">✅</span>
+        <div><div>Post-Resuscitation Stabilisation</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <ul class="step-list">
+          <li><span class="step-num">D</span><span>DOPE if sudden deterioration on ETT</span></li>
+          <li><span class="step-num">T</span><span>Temperature: target 36.5–37.5°C axillary</span></li>
+          <li><span class="step-num">G</span><span>Glucose check within 30 min</span></li>
+          <li><span class="step-num">H</span><span>HIE criteria? → passive cooling + transfer</span></li>
+        </ul>
+        <div class="info-box">
+          <strong>No cardiac activity after 20 minutes</strong> of complete resuscitation → team + parental discussion before stopping. Document clearly.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PRETERM TAB -->
+  <div class="tree-panel" id="tab-preterm">
+
+    <div class="node n-start expanded">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">🧷</span>
+        <div><div>Preterm &lt;32 weeks — Golden Hour</div><div style="font-size:11px;font-weight:400;color:var(--text-dim);margin-top:2px;">Team pre-assembled BEFORE delivery</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span><strong>Wrap immediately</strong> in polyethylene plastic bag/wrap — do NOT dry first. Neck down.</span></li>
+          <li><span class="step-num">2</span><span>Polyethylene hat on. Pre-heated warmer + thermal mattress.</span></li>
+          <li><span class="step-num">3</span><span>FiO₂ 21–30%. Titrate strictly to SpO₂ target.</span></li>
+          <li><span class="step-num">4</span><span>SpO₂ probe RIGHT hand immediately.</span></li>
+          <li><span class="step-num">5</span><span>Handle gently. Head midline. Avoid rapid volume boluses.</span></li>
+        </ul>
+        <div class="info-box" style="border-color:rgba(255,77,106,.3);">
+          <strong>⚠ Avoid SpO₂ &gt; 95% in &lt;32w.</strong> Hyperoxia causes retinopathy and oxidative injury. Reduce FiO₂ immediately if above target.
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="node n-decision">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">💨</span>
+        <div><div>Respiratory effort present?</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <div class="flow-split">
+          <div class="flow-box flow-good" style="font-size:12px;">Weak but present<br>→ CPAP<br>PEEP 6 cmH₂O</div>
+          <div class="flow-box flow-bad" style="font-size:12px;">Apnoea / HR &lt;100<br>→ PPV<br>PIP 20 cmH₂O</div>
+        </div>
+        <div class="info-box" style="margin-top:8px;">
+          <strong>CPAP preferred</strong> for spontaneously breathing preterm — reduces need for intubation and surfactant. Switch to PPV if HR falls &lt;100 or apnoea develops.
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="node n-action">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">📊</span>
+        <div><div>SpO₂ Targets — Preterm</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;">
+          <div class="flow-box flow-action" style="font-size:12px;padding:8px;">2 min<br><strong>65–70%</strong></div>
+          <div class="flow-box flow-action" style="font-size:12px;padding:8px;">3 min<br><strong>70–75%</strong></div>
+          <div class="flow-box flow-action" style="font-size:12px;padding:8px;">5 min<br><strong>80–85%</strong></div>
+          <div class="flow-box flow-action" style="font-size:12px;padding:8px;">10 min<br><strong>85–95%</strong></div>
+        </div>
+        <div class="info-box" style="margin-top:8px;">
+          <strong>Temperature check at 10–15 min.</strong> Target axillary 36.5–37.5°C. Hypothermia = independent mortality predictor. Check wrap, room temp, mattress.
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓ if HR &lt; 60 after effective PPV</div>
+
+    <div class="node n-escalate">
+      <div class="node-head" onclick="toggle(this)">
+        <span class="node-icon">🫀</span>
+        <div><div>Same CPR pathway as term</div><div style="font-size:11px;font-weight:400;color:var(--text-dim);margin-top:2px;">3:1 · FiO₂ 100% · Adrenaline via UVC</div></div>
+        <span class="node-chevron">▼</span>
+      </div>
+      <div class="node-body">
+        <div class="info-box" style="border-color:rgba(255,77,106,.3);">
+          <strong>⚠ Volume boluses in preterm:</strong> Risk of IVH (intraventricular haemorrhage). Only give if hypovolaemia confirmed (pallor, weak pulses, CRT &gt;3 sec, history of blood loss). 10 mL/kg over 5–10 min.
+        </div>
+        <div class="info-box" style="margin-top:8px;">
+          <strong>Surfactant:</strong> Not a resuscitation room intervention. Given in NICU once stabilised. LISA preferred where trained.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MASK TAB -->
+  <div class="tree-panel" id="tab-mask">
+    <div class="info-box" style="margin-bottom:12px;">
+      <strong>Apply MASK when PPV is NOT effective</strong> — no chest rise and/or HR not improving. Work through steps in order before escalating to intubation.
+    </div>
+    <div class="mask-card">
+      <div class="mask-row">
+        <div class="mask-letter">M</div>
+        <div class="mask-detail">
+          <div class="mask-label">Mask — Recheck seal &amp; position</div>
+          Press thenar eminence down on mask rim. Lift chin into mask. Check for leak at nose bridge. Ensure chin, mouth, nose covered — NOT eyes. Reapply firmly.
+        </div>
+      </div>
+      <div class="mask-row">
+        <div class="mask-letter">A</div>
+        <div class="mask-detail">
+          <div class="mask-label">Airway — Reposition &amp; clear</div>
+          Reposition in sniffing position (tragus → anterior axillary line). Brief suction if secretions visible. Open mouth slightly with finger under chin.
+        </div>
+      </div>
+      <div class="mask-row">
+        <div class="mask-letter">S</div>
+        <div class="mask-detail">
+          <div class="mask-label">Step up pressure</div>
+          Increase PIP by 5 cmH₂O increments. Call out new pressure. May go to 30–40 cmH₂O for initial inflation if no chest movement. Confirm on manometer.
+        </div>
+      </div>
+      <div class="mask-row">
+        <div class="mask-letter" style="background:rgba(255,77,106,.15);border-color:rgba(255,77,106,.3);color:var(--red);">K</div>
+        <div class="mask-detail">
+          <div class="mask-label" style="color:var(--red);">Key alternative airway</div>
+          No chest rise despite M-A-S → consider:<br>
+          <span class="pill pill-blue">LMA size 1</span> if ≥34 weeks + &gt;1500 g<br>
+          <span class="pill pill-red">ETT intubation</span> if LMA not available or fails
+        </div>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top:12px;">
+      <strong>After &gt;2 min PPV:</strong> Insert OG tube 5F or 6F. Measure: nasal bridge → earlobe → midway between xiphisternum and umbilicus. Leave on open drainage or aspirate with 20 mL syringe.
+    </div>
+  </div>
+
+  <!-- DOPE TAB -->
+  <div class="tree-panel" id="tab-dope">
+    <div class="info-box" style="margin-bottom:12px;">
+      <strong>Apply DOPE</strong> for sudden deterioration in any intubated neonate — during resuscitation, stabilisation, or transport. Work through all four causes.
+    </div>
+    <div class="mask-card">
+      <div class="mask-row">
+        <div class="mask-letter" style="background:rgba(255,77,106,.15);border-color:rgba(255,77,106,.3);color:var(--red);">D</div>
+        <div class="mask-detail">
+          <div class="mask-label">Displaced ETT</div>
+          Check lip depth mark. Auscultate bilateral axillae.<br>
+          Reduced left = right mainstem → withdraw 0.5–1 cm.<br>
+          No air entry = extubation → re-intubate.
+        </div>
+      </div>
+      <div class="mask-row">
+        <div class="mask-letter" style="background:rgba(255,179,64,.15);border-color:rgba(255,179,64,.3);color:var(--amber);">O</div>
+        <div class="mask-detail">
+          <div class="mask-label">Obstructed ETT</div>
+          Pass suction catheter through ETT. Resistance or blockage = secretion plug or kinked tube. Suction; replace ETT if cannot clear.
+        </div>
+      </div>
+      <div class="mask-row">
+        <div class="mask-letter" style="background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.3);color:var(--purple);">P</div>
+        <div class="mask-detail">
+          <div class="mask-label">Pneumothorax</div>
+          Signs: asymmetric chest, hyper-resonance, displaced apex. Tension → do NOT wait for CXR.<br>
+          <strong>Emergency decompression:</strong> 23G butterfly needle, 2nd ICS, mid-clavicular line, affected side. Aspirate air. Leave in situ until chest drain inserted.
+        </div>
+      </div>
+      <div class="mask-row">
+        <div class="mask-letter" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.3);color:var(--green);">E</div>
+        <div class="mask-detail">
+          <div class="mask-label">Equipment failure</div>
+          Check all ventilator circuit connections, gas supply, flow meter, PEEP valve integrity, O₂ blender. Replace faulty components. Revert to BVM if ventilator fails.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="bottom-safe"></div>
+
+<script>
+function toggle(head){
+  const node=head.closest('.node');
+  node.classList.toggle('expanded');
+}
+function showTab(id){
+  document.querySelectorAll('.tree-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function selectBranch(btn,type,yesId,noId){
+  const row=btn.closest('.branch-row');
+  row.querySelectorAll('.branch').forEach(b=>{b.classList.remove('sel-yes','sel-no');});
+  btn.classList.add(type==='yes'?'sel-yes':'sel-no');
+  document.getElementById(yesId).style.display=type==='yes'?'block':'none';
+  document.getElementById(noId).style.display=type==='no'?'block':'none';
+}
+// Open all nodes on load
+document.querySelectorAll('.node').forEach(n=>n.classList.add('expanded'));
+</script>
+</body>
+</html>

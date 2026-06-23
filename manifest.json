@@ -1,0 +1,24 @@
+{
+  "name": "MyNeST — Neonatal Life Support",
+  "short_name": "MyNeST",
+  "description": "Malaysian Neonatal Life Support Training — clinical reference app",
+  "start_url": "/mynest-app/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
