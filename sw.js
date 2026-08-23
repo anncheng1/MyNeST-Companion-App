@@ -1,4 +1,4 @@
-const CACHE = 'mynest-v25';
+const CACHE = 'mynest-v26';
 const ASSETS = [
   './',
   './index.html',
